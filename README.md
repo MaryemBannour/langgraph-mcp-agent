@@ -88,7 +88,7 @@ GEMINI_MODEL=gemini-3.5-flash
 Run the agent:
 
 ```bash
-python agent.py
+python main.py
 ```
 
 Example questions: *"Quelles sont mes compétences ?"*, *"Où ai-je utilisé RAG ?"*, *"Ajoute un projet …"*, *"Change la date de mon projet …"*.
@@ -116,13 +116,15 @@ The graph tests use a **scripted fake LLM** and **in-memory fake tools**, inject
 - **`interrupt()` instead of `input()` inside a node.** The pause is saved in the checkpointer, so the same graph could be approved later from a web UI or by another person, not only from a terminal.
 - **Verify, don't trust.** The `verify` node checks the data itself after each write and feeds the result back to the LLM.
 - **Dependency injection.** `build_graph(llm, tools)` receives its components, so production uses Gemini and MCP while tests use fakes, without touching the graph code.
+- **Core separated from the CLI.** `agent.py` contains no `input()` or `print()`: the same core can be reused by tests, a web UI or an API, while `main.py` only handles the terminal conversation.
 - **Model name in `.env`.** Free-tier models and quotas change often; switching models is a one-line change.
 
 ## Project structure
 
 ```
 langgraph-mcp-agent/
-├── agent.py               # graph, nodes, routing, conversation loop
+├── agent.py               # agent core: config, MCP tools, LLM, safety routing, graph
+├── main.py                # CLI entry point: conversation loop and approvals
 ├── requirements.txt
 ├── pytest.ini
 ├── docs/                  # screenshots used in this README

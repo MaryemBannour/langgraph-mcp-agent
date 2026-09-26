@@ -1,14 +1,12 @@
-import asyncio
+"""Core of the agent: configuration, MCP tools, LLM, safety routing and graph."""
 import json
 import logging
 import os
-import uuid
 from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from langchain_core.exceptions import ModelError
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.memory import InMemorySaver
@@ -160,43 +158,3 @@ def build_graph(llm, tools):
 
     # The checkpointer persists state: required to pause and resume the graph
     return graph.compile(checkpointer=InMemorySaver())
-
-
-# ---------- Conversation loop ----------
-
-async def main():
-    tools = await load_mcp_tools()
-    agent = build_graph(create_llm(), tools)
-    config = {"configurable": {"thread_id": str(uuid.uuid4())}}  # one thread = one conversation
-    print("Agent prêt. Pose une question (ou 'q' pour quitter).\n")
-
-    while True:
-        question = input("Toi : ")
-        if question.strip().lower() == "q":
-            break
-
-        try:
-            result = await agent.ainvoke(
-                {"messages": [HumanMessage(question)], "verifications": []}, config
-            )
-
-            # While the graph is paused, ask the user for approval
-            while "__interrupt__" in result:
-                for action in result["__interrupt__"][0].value["actions"]:
-                    print(f"   ⚠️  L'agent veut exécuter {action['outil']} avec : {action['arguments']}")
-                decision = input("   Tu confirmes ? (oui/non) : ").strip().lower()
-                result = await agent.ainvoke(Command(resume=decision), config)
-
-        except ModelError as error:
-            # Any LLM error (quota 429, overload 503, unknown model 404...) must not crash the program
-            print(f"   ❌ Erreur du modèle : {str(error)[:200]}\n")
-            config = {"configurable": {"thread_id": str(uuid.uuid4())}}  # start a clean conversation
-            continue
-
-        for note in result.get("verifications", []):
-            print(f"   [vérif] {note}")
-        print(f"Agent : {result['messages'][-1].text}\n")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
