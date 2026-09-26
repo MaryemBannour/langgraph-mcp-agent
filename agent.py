@@ -81,10 +81,10 @@ def approval_node(state: AgentState) -> Command[Literal["tools", "agent"]]:
     return Command(goto="agent", update={"messages": refus})
 
 
-# ---------- Graph construction ----------
+# ---------- Building blocks ----------
 
-async def build_agent():
-    # 1. Connect to the MCP server (launched locally over stdio)
+async def load_mcp_tools():
+    """Start the MCP server (stdio) and return its tools as LangChain tools."""
     client = MultiServerMCPClient({
         "portfolio": {
             "command": "node",
@@ -92,21 +92,29 @@ async def build_agent():
             "transport": "stdio",
         }
     })
-    tools = await client.get_tools()  # all 6 tools (read + write)
-    list_projects = next(t for t in tools if t.name == "list_projects")
+    return await client.get_tools()
 
-    # 2. The LLM, with the tool schemas attached
+
+def create_llm():
+    """Create the Gemini chat model from the .env configuration."""
     model_name = os.getenv("GEMINI_MODEL")
     if not model_name:
         raise ValueError("GEMINI_MODEL is missing in the .env file")
-    llm = ChatGoogleGenerativeAI(
+    return ChatGoogleGenerativeAI(
         model=model_name,
         max_retries=2,  # fail fast instead of retrying silently for minutes
         timeout=60,     # seconds: never wait forever for one LLM call
     )
+
+
+# ---------- Graph construction ----------
+
+def build_graph(llm, tools):
+    """Build the agent graph. The LLM and tools are injected so tests can use fakes."""
+    list_projects = next(t for t in tools if t.name == "list_projects")
     llm_with_tools = llm.bind_tools(tools)
 
-    # 3. Agent node: the LLM reads the history and decides (answer or call a tool)
+    # Agent node: the LLM reads the history and decides (answer or call a tool)
     async def agent_node(state: AgentState):
         prompt = SYSTEM_PROMPT
         if state.get("verifications"):
@@ -114,7 +122,7 @@ async def build_agent():
         response = await llm_with_tools.ainvoke([SystemMessage(prompt)] + state["messages"])
         return {"messages": [response]}
 
-    # 4. Verify node: never trust a "success" message, check the data itself
+    # Verify node: never trust a "success" message, check the data itself
     async def verify_node(state: AgentState):
         """After a write, re-read the data to confirm the change was actually saved."""
         notes = []
@@ -139,7 +147,6 @@ async def build_agent():
                 notes.append(f"{msg.name} : le projet '{project_id}' est introuvable après écriture")
         return {"verifications": state.get("verifications", []) + notes}
 
-    # 5. Wire the graph
     graph = StateGraph(AgentState)
     graph.add_node("agent", agent_node)
     graph.add_node("approval", approval_node)
@@ -158,7 +165,8 @@ async def build_agent():
 # ---------- Conversation loop ----------
 
 async def main():
-    agent = await build_agent()
+    tools = await load_mcp_tools()
+    agent = build_graph(create_llm(), tools)
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}  # one thread = one conversation
     print("Agent prêt. Pose une question (ou 'q' pour quitter).\n")
 
