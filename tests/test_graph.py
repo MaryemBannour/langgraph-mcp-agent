@@ -12,7 +12,7 @@ NEW_PROJECT = {"name": "Agent Test", "description": "d", "technologies": ["Pytho
 
 
 def run(agent, question, answers=()):
-    """Run one question; answer each approval pause with the next value in `answers`."""
+    #run one question, answer each approval pause with the next value in `answers`
     async def _run():
         config = {"configurable": {"thread_id": str(uuid.uuid4())}}
         result = await agent.ainvoke(
@@ -59,8 +59,8 @@ def test_rejected_write_is_not_executed():
     result, interrupts = run(agent, "Ajoute un projet", answers=["non"])
 
     assert interrupts == 1
-    assert projects == []  # nothing was written
-    assert "refusée" in result["messages"][-2].content  # the LLM was told it was refused
+    assert projects == []  #nothing was written
+    assert "refusée" in result["messages"][-2].content  #the llm was told it was refused
 
 
 def test_failed_write_is_reported_by_verification():
@@ -70,5 +70,5 @@ def test_failed_write_is_reported_by_verification():
 
     result, _ = run(agent, "Ajoute un projet", answers=["oui"])
 
-    assert len(projects) == 1  # no duplicate created
+    assert len(projects) == 1  #no duplicate created
     assert "a échoué" in result["verifications"][0]
