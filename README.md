@@ -2,7 +2,7 @@
 
 A Python AI agent built with **LangGraph** that plans, calls tools exposed by an existing **MCP server**, and **asks for human approval before any write action**, then verifies that the change was actually saved.
 
-The agent manages my professional profile (experiences, projects, skills) by talking to my [portfolio MCP server](https://github.com/MaryemBannour/-portfolio-mcp-server), written in JavaScript. The agent itself is written in Python: the two communicate only through the Model Context Protocol.
+The agent manages my professional profile (experiences, projects, skills) by talking to my [portfolio MCP server](https://github.com/MaryemBannour/portfolio-mcp-server), written in JavaScript. The agent itself is written in Python: the two communicate only through the Model Context Protocol.
 
 ![Approved write: confirmation, execution, verification](docs/demo-approve.png)
 
@@ -68,10 +68,10 @@ Python agent (LangGraph)  ◄── JSON-RPC over stdio ──►  MCP server (N
 Clone both repositories side by side:
 
 ```bash
-git clone https://github.com/MaryemBannour/-portfolio-mcp-server.git
+git clone https://github.com/MaryemBannour/portfolio-mcp-server.git
 git clone https://github.com/MaryemBannour/langgraph-mcp-agent.git
 
-cd ./-portfolio-mcp-server && npm install && cd ..
+cd ./portfolio-mcp-server && npm install && cd ..
 cd langgraph-mcp-agent
 python -m venv .venv
 .venv\Scripts\activate          # Windows  (macOS/Linux: source .venv/bin/activate)

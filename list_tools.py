@@ -3,7 +3,7 @@ from pathlib import Path
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 #path to the MCP server, sitting in the folder next door
-MCP_SERVER_PATH = Path(__file__).parent.parent / "-portfolio-mcp-server" / "src" / "server.js"
+MCP_SERVER_PATH = Path(__file__).parent.parent / "portfolio-mcp-server" / "src" / "server.js"
 
 
 async def main():

@@ -25,7 +25,7 @@ async def main():
                 {"messages": [HumanMessage(question)], "verifications": []}, config
             )
 
-            # While the graph is paused, ask the user for approval
+            #while the graph is paused, ask the user for approval
             while "__interrupt__" in result:
                 for action in result["__interrupt__"][0].value["actions"]:
                     print(f"L'agent veut exécuter {action['outil']} avec : {action['arguments']}")
@@ -33,7 +33,7 @@ async def main():
                 result = await agent.ainvoke(Command(resume=decision), config)
 
         except ModelError as error:
-            #any LLM error (quota 429, overload 503, unknown model 404...) must not crash the program
+            #any llm error (quota 429, overload 503, unknown model 404...) must not crash the program
             print(f" Erreur du modèle : {str(error)[:200]}\n")
             config = {"configurable": {"thread_id": str(uuid.uuid4())}}  #start a clean conversation
             continue
