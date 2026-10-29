@@ -36,7 +36,6 @@ class AgentState(MessagesState):
 
 
 def tool_text(content) -> str:
-    """Extract the text from an MCP tool result (str or list of content blocks)."""
     if isinstance(content, str):
         return content
     return "".join(b.get("text", "") for b in content if isinstance(b, dict))
@@ -44,7 +43,6 @@ def tool_text(content) -> str:
 
 #routing
 def route_after_agent(state: AgentState) -> Literal["approval", "tools", "__end__"]:
-    """After the LLM: end, run read tools directly, or ask for human approval on writes."""
     last = state["messages"][-1]
     if not getattr(last, "tool_calls", None):
         return END
@@ -54,14 +52,13 @@ def route_after_agent(state: AgentState) -> Literal["approval", "tools", "__end_
 
 
 def approval_node(state: AgentState) -> Command[Literal["tools", "agent"]]:
-    """Pause the graph and ask the user to approve the write actions."""
     last = state["messages"][-1]
     actions = [
         {"outil": c["name"], "arguments": c["args"]}
         for c in last.tool_calls
         if c["name"] in WRITE_TOOLS
     ]
-    decision = interrupt({"actions": actions})  # <- PAUSE: the graph waits here
+    decision = interrupt({"actions": actions})  #pause: the graph waits here
 
     if decision == "oui":
         return Command(goto="tools")
@@ -80,7 +77,7 @@ def approval_node(state: AgentState) -> Command[Literal["tools", "agent"]]:
 
 #building blocks
 async def load_mcp_tools():
-    """Start the MCP server (stdio) and return its tools as LangChain tools."""
+    #start the MCP server (stdio) and return its tools as LangChain tools
     client = MultiServerMCPClient({
         "portfolio": {
             "command": "node",
@@ -92,7 +89,6 @@ async def load_mcp_tools():
 
 
 def create_llm():
-    """Create the Gemini chat model from the .env configuration."""
     model_name = os.getenv("GEMINI_MODEL")
     if not model_name:
         raise ValueError("GEMINI_MODEL is missing in the .env file")
@@ -106,7 +102,6 @@ def create_llm():
 #Graph construction
 
 def build_graph(llm, tools):
-    """Build the agent graph. The LLM and tools are injected so tests can use fakes."""
     list_projects = next(t for t in tools if t.name == "list_projects")
     llm_with_tools = llm.bind_tools(tools)
 
@@ -120,7 +115,6 @@ def build_graph(llm, tools):
 
     #verify node: never trust a "success" message, check the data itself
     async def verify_node(state: AgentState):
-        """After a write, re-read the data to confirm the change was actually saved."""
         notes = []
         for msg in reversed(state["messages"]):
             if not isinstance(msg, ToolMessage):

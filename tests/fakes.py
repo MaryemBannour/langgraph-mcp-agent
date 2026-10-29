@@ -23,18 +23,18 @@ def tool_call(name: str, args: dict, call_id: str = "call-1") -> AIMessage:
 
 
 def make_fake_tools(projects: list[dict]):
-    #fake versions of the MCP tools backed by a plain Python list
+    """fake tools for testing"""
 
     def list_projects(technology: str = "") -> str:
-        #list projects
+        """List projects"""
         return json.dumps(projects)
 
     def get_skills() -> str:
-        #get skills
+        """Get skills"""
         return json.dumps({"ia": ["RAG", "MCP"]})
 
     def add_project(name: str, description: str, technologies: list[str], date: str) -> str:
-         #add a project
+        """Add a project"""
         project_id = name.lower().replace(" ", "-")
         if any(p["id"] == project_id for p in projects):
             return json.dumps({"error": f"Un projet avec l'id \"{project_id}\" existe déjà."})
@@ -44,7 +44,7 @@ def make_fake_tools(projects: list[dict]):
         return json.dumps({"message": "Projet ajouté avec succès.", "project": project})
 
     def update_project(id: str, date: str = "") -> str:
-        #update a project
+        """Update a project"""
         for p in projects:
             if p["id"] == id:
                 p["date"] = date or p["date"]
